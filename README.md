@@ -41,7 +41,7 @@ Página principal: http://localhost:3000
 API para ver el JSON: http://localhost:3000/status
 
 6) Actualizar local con cambios del reposicion
-   git pull origin master
+   git pull origin main
 
 
 
