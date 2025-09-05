@@ -1,10 +1,8 @@
-Guía rápida para usar el proyecto
+Guía rápida para usar el proyecto:
+
 0) Requisitos
-
 Node.js (recomendado LTS 18+).
-
 Git instalado.
-
 Permitir ICMP/ping en la red (algunos firewalls lo bloquean y daría “FALLA” falso).
 
 1) Clonar el repositorio
