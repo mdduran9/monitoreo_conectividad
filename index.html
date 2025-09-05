@@ -1,0 +1,132 @@
+<head>
+  <meta charset="UTF-8">
+  <title>Monitor de Conectividad</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+    h1 { text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 10px; text-align: center; border: 1px solid #ddd; }
+    th { background: #333; color: white; }
+
+    /* Ajustar columna de nombre de tienda */
+    td.nombre-tienda {
+      max-width: 200px;   /* 👈 ancho máximo */
+      white-space: nowrap; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+    }
+  </style>
+</head>
+<body>
+  <h1>Monitor de conectividad ISIMO</h1>
+
+  <!-- Filtro -->
+  <div class="filtros">
+    <label for="filtro">Filtrar por estado:</label>
+    <select id="filtro" onchange="renderizarTabla()">
+      <option value="todos">Todos</option>
+      <option value="OK">OK</option>
+      <option value="FALLA">FALLA</option>
+    </select>
+  </div>
+
+  <!-- Resumen -->
+  <div id="resumen" style="margin-top:10px; font-weight:bold;"></div>
+
+  <!-- Tabla de tiendas -->
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Nombre de tienda</th>
+        <th>Operador</th>
+        <th>IP Pública</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-tiendas"></tbody>
+  </table>
+
+  <script>
+    const tabla = document.getElementById("tabla-tiendas");
+    const filtro = document.getElementById("filtro");
+    const resumen = document.getElementById("resumen");
+    let dataTiendas = [];
+
+    async function actualizarTabla() {
+      try {
+        const res = await fetch("http://localhost:3000/status");
+        dataTiendas = await res.json();
+        renderizarTabla();
+      } catch (err) {
+        console.error("Error al obtener datos:", err);
+      }
+    }
+
+    function getEstadoColor(estado) {
+      if (estado.includes("FALLA")) {
+        return { 
+          color: "#000", 
+          bg: "#f7c5c5",  // 👈 tu color para FALLA
+          texto: "FALLA", 
+          detalle: "Sin respuesta, no hay conectividad con la tienda." 
+        };
+      }
+
+      const match = estado.match(/OK \((\d+)\sms\)/);
+      if (!match) {
+        return { color: "#000", bg: "#fff", texto: estado, detalle: "Estado desconocido." };
+      }
+
+      const tiempo = parseInt(match[1]);
+      if (tiempo < 20) {
+        return { color: "#fff", bg: "#4CAF50", texto: `Excelente (${tiempo} ms)`, detalle: "Mejor calidad para juegos, streaming y videollamadas sin retrasos." };
+      }
+      if (tiempo < 50) {
+        return { color: "#000", bg: "#8BC34A", texto: `Muy bueno (${tiempo} ms)`, detalle: "Experiencia fluida en la mayoría de actividades en línea y juegos." };
+      }
+      if (tiempo < 100) {
+        return { color: "#000", bg: "#FFC107", texto: `Aceptable (${tiempo} ms)`, detalle: "Suficiente para tareas básicas y juegos casuales. Puede haber algo de lag en juegos rápidos." };
+      }
+      return { color: "#fff", bg: "#F44336", texto: `Lento (${tiempo} ms)`, detalle: "Retrasos significativos en juegos y videollamadas. Experiencia pobre." };
+    }
+
+    function renderizarTabla() {
+      tabla.innerHTML = "";
+  const estadoSeleccionado = filtro.value;
+
+  let total = 0, ok = 0, falla = 0;
+
+  dataTiendas.forEach(tienda => {
+    if (
+      estadoSeleccionado === "todos" ||
+      (estadoSeleccionado === "OK" && tienda.estado.includes("OK")) ||
+      (estadoSeleccionado === "FALLA" && tienda.estado.includes("FALLA"))
+    ) {
+      total++;
+      if (tienda.estado.includes("OK")) ok++;
+      if (tienda.estado.includes("FALLA")) falla++;
+
+      const estadoInfo = getEstadoColor(tienda.estado);
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${tienda.cod_siesa || "-"}</td>
+        <td class="nombre-tienda" title="${tienda.nombre || "-"}">${tienda.nombre || "-"}</td>
+        <td>${tienda.operador || "Sin asignar"}</td>
+        <td>${tienda.ip || "Sin asignar"}</td>
+        <td style="background:${estadoInfo.bg}; color:${estadoInfo.color}; font-weight:bold;"
+            title="${estadoInfo.detalle}">
+          ${estadoInfo.texto}
+        </td>
+      `;
+      tabla.appendChild(row);
+    }
+  });
+    // actualizar resumen
+      resumen.innerText = `Mostrando: ${total} total | OK: ${ok} | FALLA: ${falla}`;
+    }
+    actualizarTabla();
+    setInterval(actualizarTabla, 15000); // Actualiza cada 15 segundos
+  </script>
+</body>
